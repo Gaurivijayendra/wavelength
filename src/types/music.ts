@@ -23,6 +23,8 @@ export interface Track {
   album: Album
   durationMs: number
   previewUrl?: string | null
+  /** `spotify:track:...` URI — present only for Spotify-sourced tracks, used to start real playback. */
+  uri?: string
 }
 
 export interface Playlist {
@@ -30,4 +32,8 @@ export interface Playlist {
   name: string
   description: string
   gradient: [string, string]
+  /** Real cover image — present for Spotify-sourced playlists, preferred over `gradient` when set. */
+  image?: string
+  /** Spotify's owner id, needed to POST tracks into this playlist. */
+  ownerId?: string
 }

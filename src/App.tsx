@@ -2,10 +2,11 @@ import { useState } from 'react'
 import { Sidebar } from './components/Sidebar'
 import { TopNav } from './components/TopNav'
 import { GreetingHeader } from './components/GreetingHeader'
+import { AskLibrary } from './components/AskLibrary'
 import { CardRow } from './components/CardRow'
 import { NowPlayingBar } from './components/NowPlayingBar'
 import { TrackDetailModal } from './components/TrackDetailModal'
-import { useMadeForYou, usePopularAlbums, useRecentlyPlayed } from './lib/queries'
+import { useLikedSongs, useMadeForYou, useRecentlyPlayed } from './lib/queries'
 import type { Track } from './types/music'
 
 function App() {
@@ -13,7 +14,7 @@ function App() {
 
   const recentlyPlayed = useRecentlyPlayed()
   const madeForYou = useMadeForYou()
-  const popularAlbums = usePopularAlbums()
+  const likedSongs = useLikedSongs()
 
   return (
     <div className="flex h-screen overflow-hidden bg-base">
@@ -22,6 +23,7 @@ function App() {
       <main className="thin-scrollbar min-w-0 flex-1 overflow-y-auto pb-28">
         <TopNav />
         <GreetingHeader />
+        <AskLibrary onOpenTrack={setOpenTrack} />
 
         <CardRow
           index={0}
@@ -29,6 +31,7 @@ function App() {
           items={recentlyPlayed.data}
           isLoading={recentlyPlayed.isLoading}
           isError={recentlyPlayed.isError}
+          onRetry={recentlyPlayed.refetch}
           onOpenTrack={setOpenTrack}
         />
         <CardRow
@@ -37,14 +40,16 @@ function App() {
           items={madeForYou.data}
           isLoading={madeForYou.isLoading}
           isError={madeForYou.isError}
+          onRetry={madeForYou.refetch}
           onOpenTrack={setOpenTrack}
         />
         <CardRow
           index={2}
-          title="Popular albums"
-          items={popularAlbums.data}
-          isLoading={popularAlbums.isLoading}
-          isError={popularAlbums.isError}
+          title="Liked songs"
+          items={likedSongs.data}
+          isLoading={likedSongs.isLoading}
+          isError={likedSongs.isError}
+          onRetry={likedSongs.refetch}
           onOpenTrack={setOpenTrack}
         />
       </main>

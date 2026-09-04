@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Play, X, Pause } from 'lucide-react'
+import { Pause, Play, X } from 'lucide-react'
 import type { Track } from '../types/music'
 import { useAlbumTracklist } from '../lib/queries'
 import { usePlayerStore } from '../store/usePlayerStore'
@@ -13,9 +13,7 @@ interface TrackDetailModalProps {
 }
 
 export function TrackDetailModal({ track, onClose }: TrackDetailModalProps) {
-  const artist = track?.artists[0]?.name ?? null
-  const album = track?.album.name ?? null
-  const { data: tracklist, isLoading } = useAlbumTracklist(artist, album)
+  const { data: tracklist, isLoading } = useAlbumTracklist(track)
   const { currentTrack, isPlaying, playTrack, togglePlay } = usePlayerStore()
 
   useEffect(() => {

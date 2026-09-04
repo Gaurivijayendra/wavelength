@@ -5,11 +5,9 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
-    // Forwards to a local serverless-style handler for the Spotify proxy
-    // (see api/ and README) once the live API is wired up. Unused while
-    // running against mock data.
-    proxy: {
-      '/api': 'http://localhost:8787',
-    },
+    // Fixed port so it matches the redirect URI registered in the Spotify
+    // Developer Dashboard (http://127.0.0.1:5174/callback).
+    port: 5174,
+    strictPort: true,
   },
 })

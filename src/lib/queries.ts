@@ -1,54 +1,67 @@
 import { useQuery } from '@tanstack/react-query'
-import { fetchAlbumsForQueries, fetchAlbumTracklist, fetchTracksForQueries } from './itunes'
-import { MADE_FOR_YOU_QUERIES, POPULAR_ALBUM_QUERIES, RECENTLY_PLAYED_QUERIES } from '../data/curated'
-import type { CuratedQuery } from '../data/curated'
-import { FALLBACK_MADE_FOR_YOU, FALLBACK_POPULAR_ALBUMS, FALLBACK_RECENTLY_PLAYED } from '../data/fallback'
+import {
+  fetchAlbumTracklist,
+  fetchLikedSongs,
+  fetchMe,
+  fetchRecentlyPlayed,
+  fetchTopTracks,
+  fetchUserPlaylists,
+  searchTracks,
+} from './spotify'
 import type { Track } from '../types/music'
 
-// Minimum time each row stays in the loading state, so the skeleton is
-// actually visible even though the iTunes API usually answers in <300ms.
-const MIN_LOADING_MS = 650
-
-async function withMinDelay<T>(promise: Promise<T>): Promise<T> {
-  const [result] = await Promise.all([promise, new Promise((r) => setTimeout(r, MIN_LOADING_MS))])
-  return result
-}
-
-async function tracksOrFallback(queries: CuratedQuery[], fallback: Track[]): Promise<Track[]> {
-  const results = await fetchTracksForQueries(queries)
-  return results.length > 0 ? results : fallback
-}
-
-async function albumsOrFallback(queries: CuratedQuery[], fallback: Track[]): Promise<Track[]> {
-  const results = await fetchAlbumsForQueries(queries)
-  return results.length > 0 ? results : fallback
-}
+// Everything here is real, personal Spotify data, served through our own
+// serverless proxy (see api/spotify-data.ts) — no visitor login involved.
 
 export function useRecentlyPlayed() {
   return useQuery({
     queryKey: ['recently-played'],
-    queryFn: () => withMinDelay(tracksOrFallback(RECENTLY_PLAYED_QUERIES, FALLBACK_RECENTLY_PLAYED)),
+    queryFn: () => fetchRecentlyPlayed(6),
   })
 }
 
 export function useMadeForYou() {
   return useQuery({
     queryKey: ['made-for-you'],
-    queryFn: () => withMinDelay(tracksOrFallback(MADE_FOR_YOU_QUERIES, FALLBACK_MADE_FOR_YOU)),
+    queryFn: () => fetchTopTracks(6),
   })
 }
 
-export function usePopularAlbums() {
+export function useLikedSongs() {
   return useQuery({
-    queryKey: ['popular-albums'],
-    queryFn: () => withMinDelay(albumsOrFallback(POPULAR_ALBUM_QUERIES, FALLBACK_POPULAR_ALBUMS)),
+    queryKey: ['liked-songs'],
+    queryFn: () => fetchLikedSongs(6),
   })
 }
 
-export function useAlbumTracklist(artist: string | null, album: string | null) {
+export function usePlaylists() {
   return useQuery({
-    queryKey: ['album-tracklist', artist, album],
-    queryFn: () => fetchAlbumTracklist(artist!, album!),
-    enabled: Boolean(artist && album),
+    queryKey: ['playlists'],
+    queryFn: () => fetchUserPlaylists(8),
+  })
+}
+
+export function useAlbumTracklist(track: Track | null) {
+  return useQuery({
+    queryKey: ['album-tracklist', track?.album.id],
+    queryFn: () => fetchAlbumTracklist(track!.album.id),
+    enabled: Boolean(track),
+  })
+}
+
+export function useOwnerProfile() {
+  return useQuery({
+    queryKey: ['owner-profile'],
+    queryFn: fetchMe,
+    staleTime: 60 * 60 * 1000, // this doesn't change during a session
+  })
+}
+
+export function useTrackSearch(query: string) {
+  const trimmed = query.trim()
+  return useQuery({
+    queryKey: ['search', trimmed],
+    queryFn: () => searchTracks(trimmed, 8),
+    enabled: trimmed.length > 1,
   })
 }

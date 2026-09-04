@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
-import { Home, Library, Search, AudioWaveform } from 'lucide-react'
-import { SIDEBAR_PLAYLISTS } from '../data/playlists'
+import { AudioWaveform, Home, Library, Search } from 'lucide-react'
+import { usePlaylists } from '../lib/queries'
 
 const NAV_ITEMS = [
   { icon: Home, label: 'Home' },
@@ -9,6 +9,8 @@ const NAV_ITEMS = [
 ]
 
 export function Sidebar() {
+  const { data: playlists } = usePlaylists()
+
   return (
     <aside className="hidden w-20 shrink-0 flex-col border-r border-line bg-surface py-6 sm:flex lg:w-64">
       <div className="mb-8 flex items-center gap-2.5 px-4 lg:px-6">
@@ -37,8 +39,9 @@ export function Sidebar() {
         <p className="mb-2 hidden px-3 text-xs font-semibold uppercase tracking-wider text-text-muted lg:block">
           Playlists
         </p>
+
         <ul className="flex flex-col gap-0.5">
-          {SIDEBAR_PLAYLISTS.map((pl) => (
+          {playlists?.map((pl) => (
             <li key={pl.id}>
               <motion.button
                 type="button"
@@ -46,10 +49,14 @@ export function Sidebar() {
                 transition={{ duration: 0.15, ease: 'easeOut' }}
                 className="relative flex w-full items-center gap-3 rounded-md py-2 pl-3 pr-2 text-left before:absolute before:left-0 before:top-1/2 before:h-0 before:w-0.5 before:-translate-y-1/2 before:bg-accent before:transition-all before:duration-150 hover:before:h-3/4 lg:pl-3"
               >
-                <div
-                  className="h-9 w-9 shrink-0 rounded"
-                  style={{ background: `linear-gradient(135deg, ${pl.gradient[0]}, ${pl.gradient[1]})` }}
-                />
+                {pl.image ? (
+                  <img src={pl.image} alt="" className="h-9 w-9 shrink-0 rounded object-cover" loading="lazy" />
+                ) : (
+                  <div
+                    className="h-9 w-9 shrink-0 rounded"
+                    style={{ background: `linear-gradient(135deg, ${pl.gradient[0]}, ${pl.gradient[1]})` }}
+                  />
+                )}
                 <div className="hidden min-w-0 lg:block">
                   <p className="truncate text-sm font-medium text-text-primary">{pl.name}</p>
                   <p className="truncate text-xs text-text-muted">{pl.description}</p>

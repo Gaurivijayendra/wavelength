@@ -9,11 +9,12 @@ interface CardRowProps {
   items: Track[] | undefined
   isLoading: boolean
   isError: boolean
+  onRetry: () => void
   onOpenTrack: (track: Track) => void
   index?: number
 }
 
-export function CardRow({ title, items, isLoading, isError, onOpenTrack, index = 0 }: CardRowProps) {
+export function CardRow({ title, items, isLoading, isError, onRetry, onOpenTrack, index = 0 }: CardRowProps) {
   const scrollerRef = useRef<HTMLDivElement>(null)
   const dragState = useRef<{ startX: number; scrollLeft: number; dragging: boolean }>({
     startX: 0,
@@ -58,8 +59,15 @@ export function CardRow({ title, items, isLoading, isError, onOpenTrack, index =
           Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
 
         {!isLoading && isError && (!items || items.length === 0) && (
-          <div className="flex min-h-[220px] w-full items-center justify-center rounded-xl border border-dashed border-line text-sm text-text-muted">
-            Couldn't load live data — showing a cached view instead.
+          <div className="flex min-h-[220px] w-full flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-line text-sm text-text-muted">
+            <p>Couldn't load this from Spotify.</p>
+            <button
+              type="button"
+              onClick={onRetry}
+              className="rounded-full bg-elevated2 px-4 py-1.5 text-xs font-semibold text-text-primary transition-colors hover:bg-white/10"
+            >
+              Try again
+            </button>
           </div>
         )}
 
