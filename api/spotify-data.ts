@@ -4,7 +4,7 @@
 // never exposes account-mutating endpoints (playlist writes, playback
 // control) publicly, only the same read-only data the dashboard renders.
 
-import { getAccessToken } from './_lib/spotify'
+import { getAccessToken } from './_lib/spotify.js'
 
 interface VercelRequest {
   method?: string

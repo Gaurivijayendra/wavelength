@@ -8,7 +8,7 @@
 // escape. Track ids are re-validated server-side against the real pool
 // before being returned, so a hallucinated id can never reach the client.
 
-import { getAccessToken } from './_lib/spotify'
+import { getAccessToken } from './_lib/spotify.js'
 
 interface VercelRequest {
   method?: string
@@ -33,26 +33,41 @@ interface RawTrackLike {
   artists?: { name: string }[]
 }
 
+interface ItemsResponse<T> {
+  items?: T[]
+}
+
+async function fetchJson<T>(url: string, headers: Record<string, string>, fallback: T): Promise<T> {
+  try {
+    const res = await fetch(url, { headers })
+    if (!res.ok) return fallback
+    return (await res.json()) as T
+  } catch {
+    return fallback
+  }
+}
+
 async function fetchCandidatePool(accessToken: string): Promise<CandidateTrack[]> {
   const headers = { Authorization: `Bearer ${accessToken}` }
-  const endpoints = [
-    'https://api.spotify.com/v1/me/player/recently-played?limit=25',
-    'https://api.spotify.com/v1/me/top/tracks?limit=25&time_range=medium_term',
-    'https://api.spotify.com/v1/me/tracks?limit=25',
-  ]
 
-  const results = await Promise.all(
-    endpoints.map((url) =>
-      fetch(url, { headers })
-        .then((r) => (r.ok ? r.json() : { items: [] }))
-        .catch(() => ({ items: [] })),
+  const [recentlyPlayed, topTracks, likedSongs] = await Promise.all([
+    fetchJson<ItemsResponse<{ track: RawTrackLike }>>(
+      'https://api.spotify.com/v1/me/player/recently-played?limit=25',
+      headers,
+      {},
     ),
-  )
+    fetchJson<ItemsResponse<RawTrackLike>>(
+      'https://api.spotify.com/v1/me/top/tracks?limit=25&time_range=medium_term',
+      headers,
+      {},
+    ),
+    fetchJson<ItemsResponse<{ track: RawTrackLike }>>('https://api.spotify.com/v1/me/tracks?limit=25', headers, {}),
+  ])
 
   const rawTracks: RawTrackLike[] = [
-    ...(results[0].items ?? []).map((i: { track: RawTrackLike }) => i.track),
-    ...(results[1].items ?? []),
-    ...(results[2].items ?? []).map((i: { track: RawTrackLike }) => i.track),
+    ...(recentlyPlayed.items ?? []).map((i) => i.track),
+    ...(topTracks.items ?? []),
+    ...(likedSongs.items ?? []).map((i) => i.track),
   ]
 
   const seen = new Set<string>()
@@ -150,8 +165,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return
     }
 
-    const aiData = await aiRes.json()
-    const toolUse = (aiData.content ?? []).find((c: { type: string }) => c.type === 'tool_use')
+    interface AnthropicContentBlock {
+      type: string
+      input?: unknown
+    }
+    const aiData = (await aiRes.json()) as { content?: AnthropicContentBlock[] }
+    const toolUse = (aiData.content ?? []).find((c) => c.type === 'tool_use')
     if (!toolUse) {
       res.status(502).json({ error: 'AI did not return a selection' })
       return

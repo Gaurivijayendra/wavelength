@@ -4,7 +4,7 @@
 // server — only this ~1hr-expiring token, scoped to whatever the owner
 // granted at setup time.
 
-import { getAccessToken } from './_lib/spotify'
+import { getAccessToken } from './_lib/spotify.js'
 
 interface VercelRequest {
   method?: string
