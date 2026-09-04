@@ -1,0 +1,88 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-base text-text-primary antialiased;
+  font-feature-settings: 'ss01' on, 'cv01' on;
+}
+
+::selection {
+  background: rgba(124, 92, 252, 0.35);
+}
+
+/* Hide scrollbars on horizontally-scrolling card rows while keeping scroll */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Thin, styled scrollbar for the sidebar / modal track list */
+.thin-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+.thin-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+.thin-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.15);
+  border-radius: 9999px;
+}
+.thin-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.28);
+}
+
+.skeleton {
+  @apply bg-elevated2 relative overflow-hidden;
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.04) 0px,
+    rgba(255, 255, 255, 0.09) 40px,
+    rgba(255, 255, 255, 0.04) 80px
+  );
+  background-size: 400px 100%;
+  @apply animate-shimmer;
+}
+
+/* Volume / seek range inputs */
+input[type='range'].wl-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.18);
+  outline: none;
+}
+input[type='range'].wl-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 9999px;
+  background: #f5f5f7;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 120ms ease-out;
+}
+input[type='range'].wl-range:hover::-webkit-slider-thumb,
+input[type='range'].wl-range:active::-webkit-slider-thumb {
+  opacity: 1;
+}
+input[type='range'].wl-range::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: none;
+  border-radius: 9999px;
+  background: #f5f5f7;
+  cursor: pointer;
+}
