@@ -40,7 +40,7 @@ export function ensureSpotifyPlayer(
   playerHandlePromise = (async () => {
     await loadSdkScript()
 
-    return new Promise<SpotifyPlayerHandle>((resolve, reject) => {
+    const connect = new Promise<SpotifyPlayerHandle>((resolve, reject) => {
       const player = new window.Spotify.Player({
         name: 'Wavelength Web Player',
         getOAuthToken,
@@ -57,6 +57,14 @@ export function ensureSpotifyPlayer(
         if (!connected) reject(new Error('Spotify player failed to connect'))
       })
     })
+
+    // Without this, a 'ready' event that never fires (rare, but seen in the
+    // wild) leaves the UI stuck on "Connecting to Spotify…" indefinitely.
+    const timeout = new Promise<SpotifyPlayerHandle>((_resolve, reject) => {
+      setTimeout(() => reject(new Error('Timed out connecting to Spotify')), 10_000)
+    })
+
+    return Promise.race([connect, timeout])
   })()
 
   playerHandlePromise.catch(() => {

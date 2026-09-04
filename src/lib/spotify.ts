@@ -72,7 +72,10 @@ interface RawPlaylist {
   description?: string | null
   images?: RawImage[]
   owner?: { id: string }
+  // Spotify's /me/playlists response uses `tracks.total` in some API
+  // versions and `items.total` in others — read whichever is present.
   tracks?: { total?: number }
+  items?: { total?: number }
 }
 
 // --- normalization ------------------------------------------------------
@@ -109,7 +112,7 @@ function normalizePlaylist(raw: RawPlaylist): Playlist {
   return {
     id: raw.id,
     name: raw.name,
-    description: raw.description || `${raw.tracks?.total ?? 0} tracks`,
+    description: raw.description || `${raw.tracks?.total ?? raw.items?.total ?? 0} tracks`,
     gradient: [`hsl(${hue} 70% 40%)`, `hsl(${(hue + 60) % 360} 70% 30%)`],
     image: raw.images?.[0]?.url,
     ownerId: raw.owner?.id,
@@ -195,9 +198,22 @@ export async function askLibrary(prompt: string): Promise<AskLibraryResult> {
 
 export async function playOnDevice(deviceId: string, uris: string[]): Promise<void> {
   const token = await fetchPlaybackToken()
-  await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
-    method: 'PUT',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ uris }),
-  })
+  const attempt = () =>
+    fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uris }),
+    })
+
+  let res = await attempt()
+  if (!res.ok && res.status === 404) {
+    // The device can take a moment to become controllable right after the
+    // SDK's 'ready' event fires — one retry covers that race reliably.
+    await new Promise((r) => setTimeout(r, 500))
+    res = await attempt()
+  }
+  if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    throw new Error(`Failed to start playback: ${res.status} ${body}`)
+  }
 }
