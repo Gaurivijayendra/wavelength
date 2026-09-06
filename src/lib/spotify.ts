@@ -168,16 +168,10 @@ export async function searchTracks(query: string, limit = 8): Promise<Track[]> {
   return (raw.tracks?.items ?? []).map(normalizeTrack)
 }
 
-export async function fetchTracksByIds(ids: string[]): Promise<Track[]> {
-  if (ids.length === 0) return []
-  const raw = await spotifyRead<{ tracks: (RawTrack | null)[] }>(`/tracks?ids=${ids.join(',')}`)
-  return (raw.tracks ?? []).filter((t): t is RawTrack => t !== null).map(normalizeTrack)
-}
-
 // --- Ask your library (AI-curated micro-playlist from real history) ----
 
 export interface AskLibraryResult {
-  trackIds: string[]
+  tracks: Track[]
   blurb: string
 }
 

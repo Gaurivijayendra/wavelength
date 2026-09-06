@@ -7,6 +7,11 @@
 // text — the worst case is a low-quality selection, not a prompt-injection
 // escape. Track ids are re-validated server-side against the real pool
 // before being returned, so a hallucinated id can never reach the client.
+//
+// Full track objects (art, duration, uri...) are taken straight from the
+// same recently-played/top-tracks/liked-songs responses used to build the
+// candidate pool — NOT re-fetched via /v1/tracks?ids=, which Spotify 403s
+// for standard apps under its current API policy, same as new-releases.
 
 import { getAccessToken } from './_lib/spotify.js'
 
@@ -21,20 +26,63 @@ interface VercelResponse {
   json(body: unknown): void
 }
 
-interface CandidateTrack {
-  id: string
-  name: string
-  artist: string
+interface RawImage {
+  url: string
+  width?: number
+  height?: number
 }
 
-interface RawTrackLike {
-  id?: string
-  name?: string
-  artists?: { name: string }[]
+interface RawArtist {
+  id: string
+  name: string
+}
+
+interface RawAlbum {
+  id: string
+  name: string
+  images?: RawImage[]
+  release_date?: string
+}
+
+interface RawTrack {
+  id: string
+  name: string
+  uri: string
+  duration_ms?: number
+  preview_url?: string | null
+  artists?: RawArtist[]
+  album?: RawAlbum
+}
+
+interface NormalizedTrack {
+  id: string
+  name: string
+  artists: { id: string; name: string }[]
+  album: { id: string; name: string; images: { url: string; width: number; height: number }[]; releaseDate?: string }
+  durationMs: number
+  previewUrl: string | null
+  uri: string
 }
 
 interface ItemsResponse<T> {
   items?: T[]
+}
+
+function normalizeTrack(raw: RawTrack): NormalizedTrack {
+  return {
+    id: raw.id,
+    name: raw.name,
+    artists: (raw.artists ?? []).map((a) => ({ id: a.id, name: a.name })),
+    album: {
+      id: raw.album?.id ?? raw.id,
+      name: raw.album?.name ?? raw.name,
+      images: (raw.album?.images ?? []).map((img) => ({ url: img.url, width: img.width ?? 0, height: img.height ?? 0 })),
+      releaseDate: raw.album?.release_date,
+    },
+    durationMs: raw.duration_ms ?? 0,
+    previewUrl: raw.preview_url ?? null,
+    uri: raw.uri,
+  }
 }
 
 async function fetchJson<T>(url: string, headers: Record<string, string>, fallback: T): Promise<T> {
@@ -47,37 +95,33 @@ async function fetchJson<T>(url: string, headers: Record<string, string>, fallba
   }
 }
 
-async function fetchCandidatePool(accessToken: string): Promise<CandidateTrack[]> {
+async function fetchCandidateTracks(accessToken: string): Promise<RawTrack[]> {
   const headers = { Authorization: `Bearer ${accessToken}` }
 
   const [recentlyPlayed, topTracks, likedSongs] = await Promise.all([
-    fetchJson<ItemsResponse<{ track: RawTrackLike }>>(
-      'https://api.spotify.com/v1/me/player/recently-played?limit=25',
-      headers,
-      {},
-    ),
-    fetchJson<ItemsResponse<RawTrackLike>>(
+    fetchJson<ItemsResponse<{ track: RawTrack }>>('https://api.spotify.com/v1/me/player/recently-played?limit=25', headers, {}),
+    fetchJson<ItemsResponse<RawTrack>>(
       'https://api.spotify.com/v1/me/top/tracks?limit=25&time_range=medium_term',
       headers,
       {},
     ),
-    fetchJson<ItemsResponse<{ track: RawTrackLike }>>('https://api.spotify.com/v1/me/tracks?limit=25', headers, {}),
+    fetchJson<ItemsResponse<{ track: RawTrack }>>('https://api.spotify.com/v1/me/tracks?limit=25', headers, {}),
   ])
 
-  const rawTracks: RawTrackLike[] = [
+  const rawTracks: RawTrack[] = [
     ...(recentlyPlayed.items ?? []).map((i) => i.track),
     ...(topTracks.items ?? []),
     ...(likedSongs.items ?? []).map((i) => i.track),
   ]
 
   const seen = new Set<string>()
-  const pool: CandidateTrack[] = []
+  const tracks: RawTrack[] = []
   for (const t of rawTracks) {
     if (!t?.id || seen.has(t.id)) continue
     seen.add(t.id)
-    pool.push({ id: t.id, name: t.name ?? 'Unknown', artist: (t.artists ?? []).map((a) => a.name).join(', ') })
+    tracks.push(t)
   }
-  return pool
+  return tracks
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -104,14 +148,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const accessToken = await getAccessToken()
-    const pool = await fetchCandidatePool(accessToken)
+    const candidates = await fetchCandidateTracks(accessToken)
 
-    if (pool.length < 3) {
-      res.status(200).json({ trackIds: [], blurb: 'Not enough listening history yet to build from.' })
+    if (candidates.length < 3) {
+      res.status(200).json({ tracks: [], blurb: 'Not enough listening history yet to build from.' })
       return
     }
 
-    const poolText = pool.map((t) => `[${t.id}] ${t.name} — ${t.artist}`).join('\n')
+    const byId = new Map(candidates.map((t) => [t.id, t]))
+    const poolText = candidates
+      .map((t) => `[${t.id}] ${t.name} — ${(t.artists ?? []).map((a) => a.name).join(', ')}`)
+      .join('\n')
 
     const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -177,13 +224,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const toolInput = toolUse.input as { trackIds?: unknown; blurb?: unknown }
-    const validIds = new Set(pool.map((t) => t.id))
-    const filteredIds = Array.isArray(toolInput.trackIds)
-      ? toolInput.trackIds.filter((id): id is string => typeof id === 'string' && validIds.has(id))
+    const orderedIds = Array.isArray(toolInput.trackIds)
+      ? toolInput.trackIds.filter((id): id is string => typeof id === 'string' && byId.has(id))
       : []
     const blurb = typeof toolInput.blurb === 'string' ? toolInput.blurb : ''
 
-    res.status(200).json({ trackIds: filteredIds, blurb })
+    const tracks = orderedIds.map((id) => normalizeTrack(byId.get(id)!))
+
+    res.status(200).json({ tracks, blurb })
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' })
   }

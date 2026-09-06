@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Sparkles } from 'lucide-react'
-import { askLibrary, fetchTracksByIds } from '../lib/spotify'
+import { askLibrary } from '../lib/spotify'
 import { Card } from './Card'
 import { SkeletonCard } from './SkeletonCard'
 import type { Track } from '../types/music'
@@ -31,15 +31,12 @@ export function AskLibrary({ onOpenTrack }: AskLibraryProps) {
 
     try {
       const result = await askLibrary(q)
-      if (result.trackIds.length === 0) {
+      if (result.tracks.length === 0) {
         setStatus('error')
         setErrorMsg(result.blurb || "Couldn't find a match for that — try a different vibe.")
         return
       }
-      const full = await fetchTracksByIds(result.trackIds)
-      // Keep the AI's chosen listening order, not whatever order the API returns.
-      const ordered = result.trackIds.map((id) => full.find((t) => t.id === id)).filter((t): t is Track => Boolean(t))
-      setTracks(ordered)
+      setTracks(result.tracks)
       setBlurb(result.blurb)
       setStatus('idle')
     } catch (err) {

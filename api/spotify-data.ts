@@ -24,7 +24,6 @@ const ALLOWED_PATH_PATTERNS = [
   /^\/me\/tracks(\?.*)?$/,
   /^\/me\/playlists(\?.*)?$/,
   /^\/albums\/[A-Za-z0-9]+$/,
-  /^\/tracks\?ids=[A-Za-z0-9,]+$/,
   /^\/search\?.*$/,
 ]
 
