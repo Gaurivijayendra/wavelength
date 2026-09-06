@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
 import { AudioWaveform, Home, Library, Search } from 'lucide-react'
 import { usePlaylists } from '../lib/queries'
+import type { Playlist } from '../types/music'
 
 const NAV_ITEMS = [
   { icon: Home, label: 'Home' },
@@ -8,7 +9,11 @@ const NAV_ITEMS = [
   { icon: Library, label: 'Your Library' },
 ]
 
-export function Sidebar() {
+interface SidebarProps {
+  onOpenPlaylist: (playlist: Playlist) => void
+}
+
+export function Sidebar({ onOpenPlaylist }: SidebarProps) {
   const { data: playlists } = usePlaylists()
 
   return (
@@ -45,6 +50,7 @@ export function Sidebar() {
             <li key={pl.id}>
               <motion.button
                 type="button"
+                onClick={() => onOpenPlaylist(pl)}
                 whileHover={{ x: 3 }}
                 transition={{ duration: 0.15, ease: 'easeOut' }}
                 className="relative flex w-full items-center gap-3 rounded-md py-2 pl-3 pr-2 text-left before:absolute before:left-0 before:top-1/2 before:h-0 before:w-0.5 before:-translate-y-1/2 before:bg-accent before:transition-all before:duration-150 hover:before:h-3/4 lg:pl-3"

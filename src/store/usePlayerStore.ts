@@ -58,6 +58,8 @@ interface PlayerState {
   displayPositionMs: number
   volume: number
   playTrack: (track: Track) => void
+  /** Plays `track`, or toggles play/pause if it's already the current track. */
+  playOrToggle: (track: Track) => void
   togglePlay: () => void
   seekToFraction: (fraction: number) => void
   setVolume: (volume: number) => void
@@ -170,6 +172,12 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
         audio.volume = get().volume
         audio.play().catch(() => set({ isPlaying: false }))
       }
+    },
+
+    playOrToggle: (track) => {
+      const { currentTrack } = get()
+      if (currentTrack?.id === track.id) get().togglePlay()
+      else get().playTrack(track)
     },
 
     togglePlay: () => {

@@ -1,13 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import {
-  fetchAlbumTracklist,
-  fetchLikedSongs,
-  fetchMe,
-  fetchRecentlyPlayed,
-  fetchTopTracks,
-  fetchUserPlaylists,
-  searchTracks,
-} from './spotify'
+import { fetchAlbumTracklist, fetchLikedSongs, fetchMe, fetchRecentlyPlayed, fetchTopTracks, fetchUserPlaylists, searchTracks } from './spotify'
 import type { Track } from '../types/music'
 
 // Everything here is real, personal Spotify data, served through our own

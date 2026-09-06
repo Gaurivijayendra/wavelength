@@ -17,6 +17,11 @@ interface VercelResponse {
   json(body: unknown): void
 }
 
+// NOTE: /playlists/{id}/tracks, /me/tracks/contains, and several write
+// endpoints (like/unlike, playlist create/add) all 403 for this app under
+// Spotify's current policy — they require "Extended API Access" (an app
+// review process on Spotify's side, not something fixable in code). Only
+// list what's confirmed working via direct testing.
 const ALLOWED_PATH_PATTERNS = [
   /^\/me$/,
   /^\/me\/player\/recently-played(\?.*)?$/,

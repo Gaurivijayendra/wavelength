@@ -168,6 +168,13 @@ export async function searchTracks(query: string, limit = 8): Promise<Track[]> {
   return (raw.tracks?.items ?? []).map(normalizeTrack)
 }
 
+// Note: /playlists/{id}/tracks, /me/tracks/contains, and every write
+// endpoint (like/unlike, create playlist, add-to-playlist) all 403 for this
+// app — confirmed via direct testing against Spotify's API. They require
+// "Extended API Access", an app review process on Spotify's side. Nothing
+// here calls them; see PlaylistDetailModal's "Open in Spotify" link for how
+// that's handled instead.
+
 // --- Ask your library (AI-curated micro-playlist from real history) ----
 
 export interface AskLibraryResult {

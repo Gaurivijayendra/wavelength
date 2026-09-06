@@ -14,7 +14,7 @@ interface TrackDetailModalProps {
 
 export function TrackDetailModal({ track, onClose }: TrackDetailModalProps) {
   const { data: tracklist, isLoading } = useAlbumTracklist(track)
-  const { currentTrack, isPlaying, playTrack, togglePlay } = usePlayerStore()
+  const { currentTrack, isPlaying, playOrToggle } = usePlayerStore()
 
   useEffect(() => {
     if (!track) return
@@ -82,7 +82,7 @@ export function TrackDetailModal({ track, onClose }: TrackDetailModalProps) {
             <div className="px-4 pb-8 pt-4 sm:px-6">
               <button
                 type="button"
-                onClick={() => (currentTrack?.id === rows[0]?.id ? togglePlay() : playTrack(rows[0]))}
+                onClick={() => playOrToggle(rows[0])}
                 className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-accent text-black transition-transform hover:scale-105"
                 aria-label="Play album"
               >
@@ -113,7 +113,7 @@ export function TrackDetailModal({ track, onClose }: TrackDetailModalProps) {
                       <li key={t.id}>
                         <button
                           type="button"
-                          onClick={() => (active ? togglePlay() : playTrack(t))}
+                          onClick={() => playOrToggle(t)}
                           className="group grid w-full grid-cols-[24px_1fr_auto] items-center gap-4 rounded-md px-2 py-2.5 text-left transition-colors hover:bg-white/5"
                         >
                           <span className="text-center text-sm text-text-muted">

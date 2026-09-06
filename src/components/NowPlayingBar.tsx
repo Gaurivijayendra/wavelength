@@ -17,7 +17,6 @@ export function NowPlayingBar() {
     currentTrack,
     isPlaying,
     mode,
-    isConnecting,
     durationMs,
     segmentStartMs,
     displayPositionMs,
@@ -66,11 +65,7 @@ export function NowPlayingBar() {
               {currentTrack ? currentTrack.name : 'Nothing playing'}
             </p>
             <p className="truncate text-xs text-text-secondary">
-              {isConnecting
-                ? 'Connecting to Spotify…'
-                : currentTrack
-                  ? currentTrack.artists.map((a) => a.name).join(', ')
-                  : 'Pick a track above'}
+              {currentTrack ? currentTrack.artists.map((a) => a.name).join(', ') : 'Pick a track above'}
               {mode === 'preview' && <span className="ml-1.5 text-text-muted">· 30s preview</span>}
             </p>
             {openInSpotifyUrl && (

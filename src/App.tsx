@@ -6,11 +6,13 @@ import { AskLibrary } from './components/AskLibrary'
 import { CardRow } from './components/CardRow'
 import { NowPlayingBar } from './components/NowPlayingBar'
 import { TrackDetailModal } from './components/TrackDetailModal'
+import { PlaylistDetailModal } from './components/PlaylistDetailModal'
 import { useLikedSongs, useMadeForYou, useRecentlyPlayed } from './lib/queries'
-import type { Track } from './types/music'
+import type { Playlist, Track } from './types/music'
 
 function App() {
   const [openTrack, setOpenTrack] = useState<Track | null>(null)
+  const [openPlaylist, setOpenPlaylist] = useState<Playlist | null>(null)
 
   const recentlyPlayed = useRecentlyPlayed()
   const madeForYou = useMadeForYou()
@@ -18,7 +20,7 @@ function App() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-base">
-      <Sidebar />
+      <Sidebar onOpenPlaylist={setOpenPlaylist} />
 
       <main className="thin-scrollbar min-w-0 flex-1 overflow-y-auto pb-28">
         <TopNav />
@@ -56,6 +58,7 @@ function App() {
 
       <NowPlayingBar />
       <TrackDetailModal track={openTrack} onClose={() => setOpenTrack(null)} />
+      <PlaylistDetailModal playlist={openPlaylist} onClose={() => setOpenPlaylist(null)} />
     </div>
   )
 }
